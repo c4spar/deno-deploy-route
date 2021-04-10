@@ -1,16 +1,16 @@
-import { Context, EventType, Method } from "./context.ts";
-import { Layer } from "./layer.ts";
+import { HTTPMethod, Layer } from "./layer.ts";
 import {
   compose,
-  isMountHandler,
+  isMountMiddleware,
   Middleware,
   MountMiddleware,
   Next,
+  ServerRequest,
 } from "./middleware.ts";
 
 export interface MiddlewareOptions {
   /** An unique identifier for created the layer */
-  name?: string;
+  // name?: string;
   end?: boolean;
 }
 
@@ -19,9 +19,9 @@ export interface RouterOptions {
   delimiter?: string;
 }
 
-export class Router {
+export class Router<T> {
   #options: RouterOptions;
-  #stack: Array<Layer> = [];
+  #stack: Array<Layer<T>> = [];
 
   constructor(options: RouterOptions = {}) {
     this.#options = options;
@@ -29,44 +29,50 @@ export class Router {
 
   /** Add a listener for a given event on all methods. */
   public use(
-    pathOrMiddleware: string | Array<string> | Middleware | MountMiddleware,
-    ...middleware: Array<Middleware | MountMiddleware>
+    pathOrMiddleware:
+      | string
+      | Array<string>
+      | Middleware<T>
+      | MountMiddleware<T>,
+    ...middleware: Array<Middleware<T> | MountMiddleware<T>>
   ): this {
-    let path: string | string[] | undefined;
-    if (typeof pathOrMiddleware === "function") {
-      middleware.unshift(pathOrMiddleware);
-    } else {
+    let path: string | Array<string> | undefined;
+    if (
+      typeof pathOrMiddleware === "string" || Array.isArray(pathOrMiddleware)
+    ) {
       path = pathOrMiddleware;
+    } else {
+      middleware.unshift(pathOrMiddleware);
     }
-    return this.register(path ?? "(.*)", middleware, [], {
+    return this.register([], path ?? "(.*)", middleware, {
       end: false,
     });
   }
 
   public get(
-    path: string | string[],
-    ...middleware: Array<Middleware | MountMiddleware>
-  ): this {
-    return this.register(path, middleware, ["GET"]);
+    path: string | Array<string>,
+    ...middleware: Array<Middleware<T> | MountMiddleware<T>>
+  ): Router<T> {
+    return this.register(["GET"], path, middleware);
   }
 
   /** Add a listener for a given event and methods. */
   public register(
+    methods: Array<HTTPMethod>,
     path: string | Array<string>,
-    middlewares: Array<Middleware | MountMiddleware>,
-    methods: Method[],
+    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
     options?: MiddlewareOptions,
   ): this {
     if (Array.isArray(path)) {
       for (const p of path) {
-        this.register(p, middlewares, methods, options);
+        this.register(methods, p, middlewares, options);
       }
       return this;
     }
 
-    let layerMiddlewares: Array<Middleware | MountMiddleware> = [];
+    let layerMiddlewares: Array<Middleware<T> | MountMiddleware<T>> = [];
     for (const middleware of middlewares) {
-      if (!isMountHandler(middleware)) {
+      if (!isMountMiddleware(middleware)) {
         layerMiddlewares.push(middleware);
         continue;
       }
@@ -88,8 +94,8 @@ export class Router {
 
   #addLayer = (
     path: string,
-    middlewares: Array<Middleware | MountMiddleware>,
-    methods: Array<Method>,
+    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
+    methods: Array<HTTPMethod>,
     options: MiddlewareOptions = {},
   ) => {
     const route = new Layer(
@@ -106,41 +112,24 @@ export class Router {
     this.#stack.push(route);
   };
 
-  public async emit(
-    methods: Method[],
-    ctx: EventType,
-    name?: string,
-  ): Promise<void> {
-    await this.dispatch(this.createContext(methods, ctx, name));
-  }
-
-  public async dispatch(
-    ctx: Context,
-    last?: Next,
-    prefix?: string,
-  ): Promise<void> {
-    const next = (layer: Layer, next: Next) =>
-      layer.dispatch(ctx, next, prefix);
-    await compose(this.#stack, next, last);
-  }
-
   /** Creates a mount handler. */
-  public routes(): MountMiddleware {
-    const fn: MountMiddleware = (ctx: Context, next: Next, prefix?: string) =>
-      this.dispatch(ctx, next, prefix);
+  public routes(): MountMiddleware<T> {
+    const fn: MountMiddleware<T> =
+      (async (ctx: T, next: Next, request: ServerRequest, prefix?: string) => {
+        await this.dispatch(request, ctx, next, prefix);
+      }) as MountMiddleware<T>;
     fn.mountable = true;
     return fn;
   }
 
-  public createContext<O extends Record<string, unknown>>(
-    methods?: Method[],
-    type?: EventType,
-    name?: string,
-    ctx?: O,
-  ): Context | Context & O {
-    return Object.assign(
-      new Context(methods, type, name),
-      ctx || {},
-    ) as Context | Context & O;
+  public async dispatch(
+    request: ServerRequest,
+    ctx: T,
+    last?: Next,
+    prefix?: string,
+  ): Promise<void> {
+    const next = (layer: Layer<T>, next: Next) =>
+      layer.dispatch(request, ctx, next, prefix);
+    await compose(this.#stack, next, last);
   }
 }

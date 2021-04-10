@@ -1,18 +1,26 @@
-import { Context } from "./context.ts";
-
-export type Next = () => Promise<void>;
-
-export interface Middleware {
-  (event: Context, next: Next): any;
+export interface ServerRequest {
+  method: string;
+  url: string;
 }
 
-export interface MountMiddleware {
-  mountable?: boolean;
+export type Next = () => Promise<void> | void;
 
-  (event: Context, next: Next, prefix?: string): any;
+export type Middleware<T> = (ctx: T, next: Next) => Promise<void>;
+
+export interface MountMiddleware<T> extends Middleware<T> {
+  (ctx: T, next: Next, request: ServerRequest, prefix?: string): Promise<void>;
+  mountable: true;
 }
 
-export function isMountHandler(fn: MountMiddleware): fn is MountMiddleware {
+export function isMiddleware<T>(
+  fn: Middleware<T>,
+): fn is Middleware<T> {
+  return typeof fn === "function";
+}
+
+export function isMountMiddleware<T>(
+  fn: any,
+): fn is MountMiddleware<T> {
   return typeof fn === "function" && fn.mountable === true;
 }
 

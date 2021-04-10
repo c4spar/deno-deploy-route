@@ -1,52 +1,60 @@
 import { pathToRegexp } from "./deps.ts";
-import { Context, EventType, Method } from "./context.ts";
 import {
   compose,
-  isMountHandler,
+  isMountMiddleware,
   Middleware,
   MountMiddleware,
   Next,
+  ServerRequest,
 } from "./middleware.ts";
+
+export type HTTPMethod =
+  | "HEAD"
+  | "OPTIONS"
+  | "GET"
+  | "PUT"
+  | "PATCH"
+  | "POST"
+  | "DELETE";
 
 export interface LayerOptions {
   delimiter?: string;
   prefix?: string;
   end?: boolean;
-  name?: string;
+  // name?: string;
 }
 
-export class Layer {
-  readonly name?: string;
+export class Layer<T> {
+  // readonly name?: string;
   private readonly delimiter: string;
   private readonly prefix: string;
   private readonly end: boolean;
-  private readonly stack: Array<Middleware | MountMiddleware>;
+  private readonly stack: Array<Middleware<T> | MountMiddleware<T>>;
   protected cache: { [s: string]: boolean } = {};
 
   public constructor(
-    public path: EventType,
-    public methods: Method[] = [],
-    middlewares: Array<Middleware | MountMiddleware>,
-    { name, delimiter = "/", prefix, end }: LayerOptions,
+    public path: string,
+    public methods: Array<HTTPMethod> = [],
+    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
+    { delimiter = "/", prefix, end }: LayerOptions,
   ) {
     this.end = end === false ? end : true;
-    this.name = name;
+    // this.name = name;
     this.delimiter = delimiter;
     this.stack = middlewares;
     this.prefix = prefix ? prefix + this.path : this.path;
   }
 
   public match(
-    methods?: Array<Method>,
-    path?: EventType,
-    name?: string,
-    prefix?: EventType,
+    method?: HTTPMethod,
+    path?: string,
+    // name?: string,
+    prefix?: string,
     cache: boolean = true,
   ): boolean {
     if (
-      name && name !== this.name ||
-      (methods?.length && this.methods.length &&
-        !this.methods.some((method: Method) => methods.includes(method)))
+      // (name && name !== this.name) ||
+      (method && !this.methods.some((m: HTTPMethod) => m === method))
     ) {
       return false;
     }
@@ -55,7 +63,8 @@ export class Layer {
       return true;
     }
 
-    const key = `${name}|${methods}|${prefix}|${path}`;
+    // const key = `${name}|${method}|${prefix}|${path}`;
+    const key = `${method}|${prefix}|${path}`;
     let matched = this.cache[key];
 
     if (typeof matched === "undefined") {
@@ -81,14 +90,15 @@ export class Layer {
   }
 
   public async dispatch(
-    ctx: Context,
+    request: ServerRequest,
+    ctx: T,
     last?: Next,
     prefix?: string,
   ): Promise<void> {
     const matched: boolean = this.match(
-      ctx.methods,
-      ctx.path,
-      ctx.name,
+      request.method as HTTPMethod,
+      new URL(request.url, import.meta.url).pathname,
+      // ctx.name,
       prefix,
     );
 
@@ -96,16 +106,16 @@ export class Layer {
       return last?.();
     }
 
-    const next = async (
-      middleware: Middleware | MountMiddleware,
+    const next = (
+      middleware: Middleware<T> | MountMiddleware<T>,
       next: Next,
     ) => {
-      if (isMountHandler(middleware)) {
+      if (isMountMiddleware<T>(middleware)) {
         prefix = `${prefix ?? ""}${this.prefix}`;
-        this.log(ctx.methods, ctx.path, prefix, middleware.name);
-        return middleware(ctx, next, prefix);
+        this.log(request, ctx, prefix, middleware.name);
+        return middleware(ctx, next, request, prefix);
       }
-      this.log(ctx.methods, ctx.path, this.prefix);
+      this.log(request, ctx, this.prefix);
       return middleware(ctx, next);
     };
 
@@ -113,17 +123,18 @@ export class Layer {
   }
 
   public log(
-    methods?: string[],
-    path?: string,
+    request: ServerRequest,
+    ctx: T,
     prefix?: string,
     name?: string,
   ) {
     console.log(
       "[%s:%s] %s (%s)",
-      methods?.length ? methods.join(",") : "ALL",
-      path || "/",
-      prefix || this.prefix,
-      name || this.name || "unknown",
+      request.method ?? "ALL",
+      request.url ?? "/",
+      prefix ?? this.prefix,
+      name ?? "unknown",
+      // name ?? this.name ?? "unknown",
     );
   }
 }
