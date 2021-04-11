@@ -5,8 +5,8 @@ import {
   Middleware,
   MountMiddleware,
   Next,
-  ServerRequest,
 } from "./middleware.ts";
+import { Context } from "./context.ts";
 
 export interface MiddlewareOptions {
   /** An unique identifier for created the layer */
@@ -19,22 +19,22 @@ export interface RouterOptions {
   delimiter?: string;
 }
 
-export class Router<T> {
+export class Router {
   #options: RouterOptions;
-  #stack: Array<Layer<T>> = [];
+  #stack: Array<Layer> = [];
 
   constructor(options: RouterOptions = {}) {
     this.#options = options;
   }
 
   /** Add a listener for a given event on all methods. */
-  public use(
+  use(
     pathOrMiddleware:
       | string
       | Array<string>
-      | Middleware<T>
-      | MountMiddleware<T>,
-    ...middleware: Array<Middleware<T> | MountMiddleware<T>>
+      | Middleware
+      | MountMiddleware,
+    ...middleware: Array<Middleware | MountMiddleware>
   ): this {
     let path: string | Array<string> | undefined;
     if (
@@ -49,18 +49,18 @@ export class Router<T> {
     });
   }
 
-  public get(
+  get(
     path: string | Array<string>,
-    ...middleware: Array<Middleware<T> | MountMiddleware<T>>
-  ): Router<T> {
+    ...middleware: Array<Middleware | MountMiddleware>
+  ): Router {
     return this.register(["GET"], path, middleware);
   }
 
   /** Add a listener for a given event and methods. */
-  public register(
+  register(
     methods: Array<HTTPMethod>,
     path: string | Array<string>,
-    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
+    middlewares: Array<Middleware | MountMiddleware>,
     options?: MiddlewareOptions,
   ): this {
     if (Array.isArray(path)) {
@@ -70,7 +70,7 @@ export class Router<T> {
       return this;
     }
 
-    let layerMiddlewares: Array<Middleware<T> | MountMiddleware<T>> = [];
+    let layerMiddlewares: Array<Middleware | MountMiddleware> = [];
     for (const middleware of middlewares) {
       if (!isMountMiddleware(middleware)) {
         layerMiddlewares.push(middleware);
@@ -94,7 +94,7 @@ export class Router<T> {
 
   #addLayer = (
     path: string,
-    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
+    middlewares: Array<Middleware | MountMiddleware>,
     methods: Array<HTTPMethod>,
     options: MiddlewareOptions = {},
   ) => {
@@ -113,23 +113,20 @@ export class Router<T> {
   };
 
   /** Creates a mount handler. */
-  public routes(): MountMiddleware<T> {
-    const fn: MountMiddleware<T> =
-      (async (ctx: T, next: Next, request: ServerRequest, prefix?: string) => {
-        await this.dispatch(request, ctx, next, prefix);
-      }) as MountMiddleware<T>;
+  routes(): MountMiddleware {
+    const fn: MountMiddleware = (ctx: Context, next: Next, prefix?: string) =>
+      this.dispatch(ctx, next, prefix);
     fn.mountable = true;
     return fn;
   }
 
-  public async dispatch(
-    request: ServerRequest,
-    ctx: T,
+  async dispatch(
+    ctx: Context,
     last?: Next,
     prefix?: string,
   ): Promise<void> {
-    const next = (layer: Layer<T>, next: Next) =>
-      layer.dispatch(request, ctx, next, prefix);
+    const next = (layer: Layer, next: Next) =>
+      layer.dispatch(ctx, next, prefix);
     await compose(this.#stack, next, last);
   }
 }

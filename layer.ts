@@ -1,12 +1,12 @@
-import { pathToRegexp } from "./deps.ts";
+import { Key, pathToRegexp } from "./deps.ts";
 import {
   compose,
   isMountMiddleware,
   Middleware,
   MountMiddleware,
   Next,
-  ServerRequest,
 } from "./middleware.ts";
+import { Context, RouteParams } from "./context.ts";
 
 export type HTTPMethod =
   | "HEAD"
@@ -24,18 +24,24 @@ export interface LayerOptions {
   // name?: string;
 }
 
-export class Layer<T> {
+export interface MatchResult {
+  matched: boolean;
+  params: RouteParams;
+}
+
+const cache: { [s: string]: MatchResult } = {};
+
+export class Layer {
   // readonly name?: string;
   private readonly delimiter: string;
   private readonly prefix: string;
   private readonly end: boolean;
-  private readonly stack: Array<Middleware<T> | MountMiddleware<T>>;
-  protected cache: { [s: string]: boolean } = {};
+  private readonly stack: Array<Middleware | MountMiddleware>;
 
-  public constructor(
-    public path: string,
-    public methods: Array<HTTPMethod> = [],
-    middlewares: Array<Middleware<T> | MountMiddleware<T>>,
+  constructor(
+    public readonly path: string,
+    public readonly methods: ReadonlyArray<HTTPMethod> = [],
+    middlewares: Array<Middleware | MountMiddleware>,
     { delimiter = "/", prefix, end }: LayerOptions,
   ) {
     this.end = end === false ? end : true;
@@ -45,57 +51,55 @@ export class Layer<T> {
     this.prefix = prefix ? prefix + this.path : this.path;
   }
 
-  public match(
+  match(
     method?: HTTPMethod,
     path?: string,
     // name?: string,
     prefix?: string,
-    cache: boolean = true,
-  ): boolean {
+  ): MatchResult {
     if (
       // (name && name !== this.name) ||
       (method && !this.methods.some((m: HTTPMethod) => m === method))
     ) {
-      return false;
+      return { matched: false, params: {} };
     }
 
-    if (this.prefix === "(.*)") {
-      return true;
+    prefix = prefix ?? "";
+    path = path ?? "";
+
+    // const key = `${name}|${prefix}|${path}`;
+    const key = `${prefix}|${this.prefix}|${path}`;
+
+    if (cache[key]) {
+      return cache[key];
     }
 
-    // const key = `${name}|${method}|${prefix}|${path}`;
-    const key = `${method}|${prefix}|${path}`;
-    let matched = this.cache[key];
-
-    if (typeof matched === "undefined") {
-      matched = (!prefix && !path) ||
-        this.createRegExp(prefix).test(path || "");
-
-      if (cache) {
-        this.cache[key] = matched;
-      }
-    }
-
-    return matched;
-  }
-
-  public createRegExp(prefix?: string) {
-    return pathToRegexp(`${prefix ?? ""}${this.prefix}`, [], {
+    const keys: Array<Key> = [];
+    const params: RouteParams = {};
+    const regex = pathToRegexp(`${prefix}${this.prefix}`, keys, {
       sensitive: false,
       strict: false,
       start: true,
       end: this.end,
       delimiter: this.delimiter,
     });
+    const matches = path.match(regex)?.slice(1) ?? [];
+    for (let i = 0; i < keys.length; i++) {
+      params[keys[i].name] = matches[i];
+    }
+
+    cache[key] = { matched: matches.length > 0, params };
+
+    return cache[key];
   }
 
-  public async dispatch(
-    request: ServerRequest,
-    ctx: T,
+  async dispatch(
+    ctx: Context,
     last?: Next,
     prefix?: string,
   ): Promise<void> {
-    const matched: boolean = this.match(
+    const request: Request = ctx.request;
+    const { matched, params } = this.match(
       request.method as HTTPMethod,
       new URL(request.url, import.meta.url).pathname,
       // ctx.name,
@@ -106,35 +110,44 @@ export class Layer<T> {
       return last?.();
     }
 
+    Object.assign(ctx.params, params);
+
     const next = (
-      middleware: Middleware<T> | MountMiddleware<T>,
+      middleware: Middleware | MountMiddleware,
       next: Next,
     ) => {
-      if (isMountMiddleware<T>(middleware)) {
+      if (isMountMiddleware(middleware)) {
         prefix = `${prefix ?? ""}${this.prefix}`;
-        this.log(request, ctx, prefix, middleware.name);
-        return middleware(ctx, next, request, prefix);
+        this.log(ctx, prefix, middleware.name);
+        return middleware(ctx, next, prefix);
       }
-      this.log(request, ctx, this.prefix);
+      this.log(ctx, this.prefix);
       return middleware(ctx, next);
     };
 
     await compose(this.stack, next, last);
   }
 
-  public log(
-    request: ServerRequest,
-    ctx: T,
+  log(
+    ctx: Context,
     prefix?: string,
     name?: string,
   ) {
     console.log(
       "[%s:%s] %s (%s)",
-      request.method ?? "ALL",
-      request.url ?? "/",
+      ctx.request.method ?? "ALL",
+      ctx.request.url ?? "/",
       prefix ?? this.prefix,
       name ?? "unknown",
       // name ?? this.name ?? "unknown",
     );
+  }
+}
+
+function decodeComponent(text: string) {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
   }
 }

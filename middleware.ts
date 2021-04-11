@@ -1,27 +1,25 @@
-export interface ServerRequest {
-  method: string;
-  url: string;
-}
+import { Context } from "./context.ts";
 
 export type Next = () => Promise<void> | void;
 
-export type Middleware<T> = (ctx: T, next: Next) => Promise<void>;
+export type Middleware = (ctx: Context, next: Next) => Promise<void>;
 
-export interface MountMiddleware<T> extends Middleware<T> {
-  (ctx: T, next: Next, request: ServerRequest, prefix?: string): Promise<void>;
+export interface MountMiddleware extends Middleware {
+  (ctx: Context, next: Next, prefix?: string): Promise<void>;
   mountable: true;
 }
 
-export function isMiddleware<T>(
-  fn: Middleware<T>,
-): fn is Middleware<T> {
+export function isMiddleware(
+  fn: Middleware,
+): fn is Middleware {
   return typeof fn === "function";
 }
 
-export function isMountMiddleware<T>(
-  fn: any,
-): fn is MountMiddleware<T> {
-  return typeof fn === "function" && fn.mountable === true;
+export function isMountMiddleware(
+  fn: Middleware | MountMiddleware,
+): fn is MountMiddleware {
+  const mw = fn as MountMiddleware;
+  return typeof mw === "function" && mw.mountable === true;
 }
 
 export async function compose<T>(
@@ -35,7 +33,7 @@ export async function compose<T>(
   }
 
   stack = stack.slice();
-  let nextIndex: number = -1;
+  let nextIndex = -1;
 
   const dispatch = async (index: number): Promise<void> => {
     if (nextIndex >= index) {
