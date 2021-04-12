@@ -6,7 +6,7 @@ import {
   MountMiddleware,
   Next,
 } from "./middleware.ts";
-import { Context, RouteParams } from "./context.ts";
+import { Context, RouteParams, State } from "./context.ts";
 
 export type HTTPMethod =
   | "HEAD"
@@ -29,19 +29,22 @@ export interface MatchResult {
   params: RouteParams;
 }
 
-const cache: { [s: string]: MatchResult } = {};
-
-export class Layer {
+export class Layer<
+  P extends RouteParams = RouteParams,
+  // deno-lint-ignore no-explicit-any
+  S extends State = Record<string, any>,
+> {
   // readonly name?: string;
   private readonly delimiter: string;
   private readonly prefix: string;
   private readonly end: boolean;
-  private readonly stack: Array<Middleware | MountMiddleware>;
+  private readonly stack: Array<Middleware<P, S> | MountMiddleware<P, S>>;
+  private readonly cache: { [s: string]: MatchResult } = {};
 
   constructor(
     public readonly path: string,
     public readonly methods: ReadonlyArray<HTTPMethod> = [],
-    middlewares: Array<Middleware | MountMiddleware>,
+    middlewares: Array<Middleware<P, S> | MountMiddleware<P, S>>,
     { delimiter = "/", prefix, end }: LayerOptions,
   ) {
     this.end = end === false ? end : true;
@@ -59,7 +62,8 @@ export class Layer {
   ): MatchResult {
     if (
       // (name && name !== this.name) ||
-      (method && !this.methods.some((m: HTTPMethod) => m === method))
+      (method && this.methods.length &&
+        !this.methods.some((m: HTTPMethod) => m === method))
     ) {
       return { matched: false, params: {} };
     }
@@ -70,8 +74,8 @@ export class Layer {
     // const key = `${name}|${prefix}|${path}`;
     const key = `${prefix}|${this.prefix}|${path}`;
 
-    if (cache[key]) {
-      return cache[key];
+    if (this.cache[key]) {
+      return this.cache[key];
     }
 
     const keys: Array<Key> = [];
@@ -83,18 +87,21 @@ export class Layer {
       end: this.end,
       delimiter: this.delimiter,
     });
-    const matches = path.match(regex)?.slice(1) ?? [];
-    for (let i = 0; i < keys.length; i++) {
-      params[keys[i].name] = matches[i];
+
+    const [matched, ...matches] = regex.exec(path) ?? [];
+    if (matched) {
+      for (let i = 0; i < keys.length; i++) {
+        params[keys[i].name] = decodeComponent(matches[i]);
+      }
     }
 
-    cache[key] = { matched: matches.length > 0, params };
+    this.cache[key] = { matched: !!matched, params };
 
-    return cache[key];
+    return this.cache[key];
   }
 
   async dispatch(
-    ctx: Context,
+    ctx: Context<P, S>,
     last?: Next,
     prefix?: string,
   ): Promise<void> {
@@ -113,34 +120,17 @@ export class Layer {
     Object.assign(ctx.params, params);
 
     const next = (
-      middleware: Middleware | MountMiddleware,
+      middleware: Middleware<P, S> | MountMiddleware<P, S>,
       next: Next,
     ) => {
-      if (isMountMiddleware(middleware)) {
+      if (isMountMiddleware<P, S>(middleware)) {
         prefix = `${prefix ?? ""}${this.prefix}`;
-        this.log(ctx, prefix, middleware.name);
         return middleware(ctx, next, prefix);
       }
-      this.log(ctx, this.prefix);
       return middleware(ctx, next);
     };
 
     await compose(this.stack, next, last);
-  }
-
-  log(
-    ctx: Context,
-    prefix?: string,
-    name?: string,
-  ) {
-    console.log(
-      "[%s:%s] %s (%s)",
-      ctx.request.method ?? "ALL",
-      ctx.request.url ?? "/",
-      prefix ?? this.prefix,
-      name ?? "unknown",
-      // name ?? this.name ?? "unknown",
-    );
   }
 }
 
