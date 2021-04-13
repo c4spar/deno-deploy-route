@@ -51,9 +51,9 @@ const router = new Router()
       Date.now() - time,
     );
   })
-  .get("/hello/world/:foo", async (event) => {
+  .get<{ foo: string }>("/hello/world/:foo", async (event) => {
     await event.respondWith(
-      new Response("Hello World!\n", {
+      new Response(`Hello ${event.params.baz}!\n`, {
         headers: { "content-type": "text/plain" },
       }),
     );
@@ -66,6 +66,27 @@ const router = new Router()
       }),
     );
   });
+
+addEventListener("fetch", async (event) => {
+  await router.dispatch(new Context(event));
+});
+```
+
+## Nested Routers
+
+```typescript
+const router1 = new Router();
+const router2 = new Router();
+
+router1.use("/foo/:bar", router2.routes());
+
+router2.get<{ bar: string; baz: string }>("/:baz", async (event) => {
+  await event.respondWith(
+    new Response(`bar: ${event.params.bar}, baz: ${event.params.baz}\n`, {
+      headers: { "content-type": "text/plain" },
+    }),
+  );
+});
 
 addEventListener("fetch", async (event) => {
   await router.dispatch(new Context(event));

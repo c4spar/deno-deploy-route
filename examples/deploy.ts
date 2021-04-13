@@ -13,9 +13,9 @@ const router = new Router()
       Date.now() - time,
     );
   })
-  .get("/hello/world/:foo", async (event) => {
+  .get<{ foo: string }>("/hello/world/:foo", async (event) => {
     await event.respondWith(
-      new Response("Hello World!\n", {
+      new Response(`Hello ${event.params.baz}!\n`, {
         headers: { "content-type": "text/plain" },
       }),
     );
