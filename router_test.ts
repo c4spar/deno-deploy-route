@@ -87,7 +87,7 @@ Deno.test({
     const callStack: Array<string> = [];
     const router = new Router();
 
-    router.all("/foo/bar", async (_ctx, next) => {
+    router.all("/foo/bar", async (ctx, next) => {
       callStack.push(ctx.request.method);
       await next();
     });
@@ -151,7 +151,7 @@ for (const methodName of methodNames) {
 
       method1.call(router1, "/foo/:bar", router2.routes());
 
-      method2.call(router2, "/:baz", (_ctx: Context, next: Next) => {
+      method2.call(router2, "/:baz", (ctx: Context, next: Next) => {
         callStack.push(ctx.params);
         return next();
       });
