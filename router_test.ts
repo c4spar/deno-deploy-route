@@ -42,28 +42,28 @@ for (const methodName of methodNames) {
       // deno-lint-ignore ban-types
       const method = router[methodName] as Function;
 
-      router.use(async (ctx, next) => {
+      router.use(async (_ctx, next) => {
         callStack.push(1);
         await next();
       });
-      router.use("/foo", async (ctx, next) => {
+      router.use("/foo", async (_ctx, next) => {
         callStack.push(2);
         await next();
       });
-      router.use("/foo/bar", async (ctx, next) => {
+      router.use("/foo/bar", async (_ctx, next) => {
         callStack.push(3);
         await next();
       });
-      router.use("/foo/baz", async (ctx, next) => {
+      router.use("/foo/baz", async (_ctx, next) => {
         callStack.push(4);
         await next();
       });
 
-      method.call(router, "/foo", (ctx: Context, next: Next) => {
+      method.call(router, "/foo", (_ctx: Context, next: Next) => {
         callStack.push(5);
         return next();
       });
-      method.call(router, "/foo/bar", (ctx: Context, next: Next) => {
+      method.call(router, "/foo/bar", (_ctx: Context, next: Next) => {
         callStack.push(6);
         return next();
       });
@@ -87,7 +87,7 @@ Deno.test({
     const callStack: Array<string> = [];
     const router = new Router();
 
-    router.all("/foo/bar", async (ctx, next) => {
+    router.all("/foo/bar", async (_ctx, next) => {
       callStack.push(ctx.request.method);
       await next();
     });
@@ -108,19 +108,19 @@ for (const methodName of methodNames) {
       // deno-lint-ignore ban-types
       const method = router[methodName] as Function;
 
-      router.use(async (ctx, next) => {
+      router.use(async (_ctx, next) => {
         callStack.push(1);
         await next();
       });
 
-      method.call(router, "/foo/bar", (ctx: Context, next: Next) => {
+      method.call(router, "/foo/bar", (_ctx: Context, next: Next) => {
         callStack.push(2);
         return next();
       });
       method.call(
         router,
         ["/foo/bar", "/foo/baz"],
-        (ctx: Context, next: Next) => {
+        (_ctx: Context, next: Next) => {
           callStack.push(3);
           return next();
         },
@@ -151,7 +151,7 @@ for (const methodName of methodNames) {
 
       method1.call(router1, "/foo/:bar", router2.routes());
 
-      method2.call(router2, "/:baz", (ctx: Context, next: Next) => {
+      method2.call(router2, "/:baz", (_ctx: Context, next: Next) => {
         callStack.push(ctx.params);
         return next();
       });
@@ -166,7 +166,7 @@ Deno.test({
   name: `router - next called multiple times`,
   async fn() {
     const router = new Router();
-    router.get("/foo", async (ctx: Context, next: Next) => {
+    router.get("/foo", async (_ctx: Context, next: Next) => {
       await next();
       await next();
     });
