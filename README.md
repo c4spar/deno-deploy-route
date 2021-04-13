@@ -1,4 +1,4 @@
-<h1 align="center">Router</h1>
+<h1 align="center">Deploy Route</h1>
 
 <p align="center" class="badges-container">
   <a href="https://github.com/c4spar/deno-deploy-route/releases">
