@@ -70,5 +70,4 @@ const router = new Router()
 addEventListener("fetch", async (event) => {
   await router.dispatch(new Context(event));
 });
-
 ```
