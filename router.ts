@@ -310,7 +310,7 @@ export class Router<
     this.#register(path, middleware, methods, { name });
   };
 
-  /** Add a listener for a given event and methods. */
+  /** Add middlewares for a given path and methods. */
   #register = (
     path: string | Array<string>,
     middlewares: Array<Middleware | MountMiddleware>,
@@ -367,7 +367,7 @@ export class Router<
     this.#stack.push(route);
   };
 
-  /** Creates a mount handler. */
+  /** Creates a mount middleware. */
   routes(): MountMiddleware<RP, RS> {
     const fn: MountMiddleware<RP, RS> = (
       ctx: Context,
@@ -378,6 +378,7 @@ export class Router<
     return fn;
   }
 
+  /** Dispatch middlewares. */
   async dispatch(
     ctx: Context,
     last?: Next,
