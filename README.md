@@ -53,7 +53,7 @@ const router = new Router()
   })
   .get<{ foo: string }>("/hello/world/:foo", async (event) => {
     await event.respondWith(
-      new Response(`Hello ${event.params.baz}!\n`, {
+      new Response(`Hello ${event.params.foo}!\n`, {
         headers: { "content-type": "text/plain" },
       }),
     );
