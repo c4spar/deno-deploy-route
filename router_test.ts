@@ -21,6 +21,7 @@ export class MockContext extends Context {
         method: method.toUpperCase(),
         url: `http://localhost:8080${path}`,
       },
+      // deno-lint-ignore no-explicit-any
     } as any);
   }
 }
@@ -38,6 +39,7 @@ for (const methodName of methodNames) {
     async fn() {
       const callStack: Array<number> = [];
       const router = new Router();
+      // deno-lint-ignore ban-types
       const method = router[methodName] as Function;
 
       router.use(async (ctx, next) => {
@@ -82,12 +84,12 @@ for (const methodName of methodNames) {
 Deno.test({
   name: `router - match route - all`,
   async fn() {
-    let callStack: Array<string> = [];
+    const callStack: Array<string> = [];
     const router = new Router();
 
     router.all("/foo/bar", async (ctx, next) => {
       callStack.push(ctx.request.method);
-      return next();
+      await next();
     });
 
     for (const methodName of methodNames) {
@@ -103,6 +105,7 @@ for (const methodName of methodNames) {
     async fn() {
       let callStack: Array<number> = [];
       const router = new Router();
+      // deno-lint-ignore ban-types
       const method = router[methodName] as Function;
 
       router.use(async (ctx, next) => {
@@ -138,10 +141,12 @@ for (const methodName of methodNames) {
   Deno.test({
     name: `router - match params - ${methodName}`,
     async fn() {
-      let callStack: Array<unknown> = [];
+      const callStack: Array<unknown> = [];
       const router1 = new Router();
       const router2 = new Router();
+      // deno-lint-ignore ban-types
       const method1 = router1[methodName] as Function;
+      // deno-lint-ignore ban-types
       const method2 = router2[methodName] as Function;
 
       method1.call(router1, "/foo/:bar", router2.routes());
@@ -160,14 +165,13 @@ for (const methodName of methodNames) {
 Deno.test({
   name: `router - next called multiple times`,
   async fn() {
-    let callStack: Array<unknown> = [];
     const router = new Router();
     router.get("/foo", async (ctx: Context, next: Next) => {
       await next();
       await next();
     });
 
-    assertThrowsAsync(
+    await assertThrowsAsync(
       () => router.dispatch(new MockContext("GET", "/foo")),
       Error,
       "next() called multiple times",

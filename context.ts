@@ -1,4 +1,6 @@
 export type RouteParams = Record<string | number, string | undefined>;
+
+// deno-lint-ignore no-explicit-any
 export type State = Record<string | number | symbol, any>;
 
 export interface FetchEvent {
