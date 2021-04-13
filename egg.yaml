@@ -1,0 +1,17 @@
+name: deploy_route
+description: Routing module for deno deploy 🦕
+unstable: true
+version: 0.1.0
+repository: https://github.com/c4spar/deno-deploy-route
+homepage: https://github.com/c4spar/deno-deploy-route
+files:
+  - examples/**/*
+  - CHANGELOG.md
+  - context.ts
+  - deps.ts
+  - layer.ts
+  - LICENSE
+  - middleware.ts
+  - mod.ts
+  - README.md
+  - router.ts
