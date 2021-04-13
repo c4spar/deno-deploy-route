@@ -23,9 +23,7 @@ export class Context<
     this.request = event.request;
   }
 
-  respondWith(
-    ...args: Parameters<FetchEvent["respondWith"]>
-  ): ReturnType<FetchEvent["respondWith"]> {
-    return this.#event.respondWith(...args);
+  respondWith(response: Response | Promise<Response>): Promise<Response> {
+    return this.#event.respondWith(response);
   }
 }
