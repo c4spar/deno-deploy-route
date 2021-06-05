@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macOS-latest, windows-latest, ubuntu-latest ]
-        deno_version: [ nightly ]
+        deno_version: [ canary ]
     steps:
       - name: Setup repo
         uses: actions/checkout@v2
