@@ -2,17 +2,19 @@ import { Context, RouteParams, State } from "./context.ts";
 
 export type Next = () => Promise<void> | void;
 
-export type Middleware<
+export interface Middleware<
   P extends RouteParams = RouteParams,
   // deno-lint-ignore no-explicit-any
   S extends State = Record<string, any>,
-> = (ctx: Context<P, S>, next: Next) => Promise<void>;
+> {
+  (ctx: Context<P, S>, next: Next): Promise<void>;
+}
 
 export interface MountMiddleware<
   P extends RouteParams = RouteParams,
   // deno-lint-ignore no-explicit-any
   S extends State = Record<string, any>,
-> extends Middleware {
+> {
   (ctx: Context<P, S>, next: Next, prefix?: string): Promise<void>;
   mountable: true;
 }
@@ -22,9 +24,9 @@ export function isMountMiddleware<
   // deno-lint-ignore no-explicit-any
   S extends State = Record<string, any>,
 >(
-  fn: Middleware<P, S> | MountMiddleware<P, S>,
+  fn: Middleware<P, S>,
 ): fn is MountMiddleware<P, S> {
-  const mw = fn as MountMiddleware;
+  const mw = fn as MountMiddleware<P, S>;
   return typeof mw === "function" && mw.mountable === true;
 }
 

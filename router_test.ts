@@ -166,7 +166,7 @@ Deno.test({
   name: `router - next called multiple times`,
   async fn() {
     const router = new Router();
-    router.get("/foo", async (_ctx: Context, next: Next) => {
+    router.get("/foo", async (_ctx, next) => {
       await next();
       await next();
     });

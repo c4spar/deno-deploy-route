@@ -33,21 +33,17 @@ export class Router<
 
   /** Register middleware to be used on every matched route. */
   use<P extends RouteParams = RP, S extends State = RS>(
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware to be used on every route that matches the supplied
    * `path`. */
   use<P extends RouteParams = RP, S extends State = RS>(
     path: string | string[],
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   use<P extends RouteParams = RP, S extends State = RS>(
-    pathOrMiddleware:
-      | string
-      | string[]
-      | Middleware<P, S>
-      | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | string[] | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     let path: string | Array<string> | undefined;
     if (
@@ -59,7 +55,7 @@ export class Router<
     }
     return this.#register(
       path ?? "(.*)",
-      middleware as Array<Middleware | MountMiddleware>,
+      middleware as Array<Middleware>,
       [],
       {
         end: false,
@@ -72,23 +68,23 @@ export class Router<
   all<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `DELETE`,
    * `GET`, `POST`, or `PUT` method is requested. */
   all<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   all<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["DELETE", "GET", "POST", "PUT"],
     );
     // deno-lint-ignore no-explicit-any
@@ -100,23 +96,23 @@ export class Router<
   delete<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `DELETE`,
    * method is requested. */
   delete<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   delete<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["DELETE"],
     );
     // deno-lint-ignore no-explicit-any
@@ -128,23 +124,23 @@ export class Router<
   get<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `GET`,
    * method is requested. */
   get<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   get<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["GET"],
     );
     // deno-lint-ignore no-explicit-any
@@ -156,23 +152,23 @@ export class Router<
   head<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `HEAD`,
    * method is requested. */
   head<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   head<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["HEAD"],
     );
     // deno-lint-ignore no-explicit-any
@@ -184,23 +180,23 @@ export class Router<
   options<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `OPTIONS`,
    * method is requested. */
   options<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   options<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["OPTIONS"],
     );
     // deno-lint-ignore no-explicit-any
@@ -212,23 +208,23 @@ export class Router<
   patch<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `PATCH`,
    * method is requested. */
   patch<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   patch<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["PATCH"],
     );
     // deno-lint-ignore no-explicit-any
@@ -240,23 +236,23 @@ export class Router<
   post<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `POST`,
    * method is requested. */
   post<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   post<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["POST"],
     );
     // deno-lint-ignore no-explicit-any
@@ -268,23 +264,23 @@ export class Router<
   put<P extends RouteParams = RP, S extends State = RS>(
     name: string,
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   /** Register middleware for the specified routes when the `PUT`
    * method is requested. */
   put<P extends RouteParams = RP, S extends State = RS>(
     path: string,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)>;
   put<P extends RouteParams = RP, S extends State = RS>(
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware<P, S> | MountMiddleware<P, S>,
-    ...middleware: Array<Middleware<P, S> | MountMiddleware<P, S>>
+    pathOrMiddleware: string | Middleware<P, S>,
+    ...middleware: Array<Middleware<P, S>>
   ): Router<P extends RP ? P : (P & RP), S extends RS ? S : (S & RS)> {
     this.#useVerb(
       nameOrPath,
-      pathOrMiddleware as (string | Middleware | MountMiddleware),
-      middleware as Array<Middleware | MountMiddleware>,
+      pathOrMiddleware as (string | Middleware),
+      middleware as Array<Middleware>,
       ["PUT"],
     );
     // deno-lint-ignore no-explicit-any
@@ -293,8 +289,8 @@ export class Router<
 
   #useVerb = (
     nameOrPath: string,
-    pathOrMiddleware: string | Middleware | MountMiddleware,
-    middleware: Array<Middleware | MountMiddleware>,
+    pathOrMiddleware: string | Middleware,
+    middleware: Array<Middleware>,
     methods: HTTPMethod[],
   ): void => {
     let name: string | undefined = undefined;
@@ -313,7 +309,7 @@ export class Router<
   /** Add middlewares for a given path and methods. */
   #register = (
     path: string | Array<string>,
-    middlewares: Array<Middleware | MountMiddleware>,
+    middlewares: Array<Middleware>,
     methods: Array<HTTPMethod>,
     options?: MiddlewareOptions,
   ): this => {
@@ -323,9 +319,8 @@ export class Router<
       }
       return this;
     }
-    // console.log("register:", path, methods);
 
-    let layerMiddlewares: Array<Middleware | MountMiddleware> = [];
+    let layerMiddlewares: Array<Middleware> = [];
     for (const middleware of middlewares) {
       if (!isMountMiddleware(middleware)) {
         layerMiddlewares.push(middleware);
@@ -349,7 +344,7 @@ export class Router<
 
   #addLayer = (
     path: string,
-    middlewares: Array<Middleware | MountMiddleware>,
+    middlewares: Array<Middleware>,
     methods: Array<HTTPMethod>,
     options: MiddlewareOptions = {},
   ) => {
